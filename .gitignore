@@ -3,6 +3,7 @@ data/
 *.csv
 *.zip
 *.json
+data/creditcard.csv
 
 # ===== MODELS (large pkl files) =====
 models/*.pkl
