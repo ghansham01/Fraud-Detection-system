@@ -1,1 +1,24 @@
-data/creditcard.csv
+# ===== DATA =====
+data/
+*.csv
+*.zip
+*.json
+
+# ===== MODELS (large pkl files) =====
+models/*.pkl
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+env/
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+
+# ===== Jupyter =====
+.ipynb_checkpoints/
+*.ipynb

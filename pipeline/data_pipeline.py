@@ -6,8 +6,9 @@ from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
 import joblib
 
+# Resolve paths relative to this script's location, not current working directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-RAW_DATA_PATH = os.path.join(BASE_DIR, "..", "data", "archive.zip")
+RAW_DATA_PATH = os.path.join(BASE_DIR, "..", "data", "creditcard.csv")
 OUTPUT_DIR = os.path.join(BASE_DIR, "..", "data", "processed")
 SCALER_PATH = os.path.join(BASE_DIR, "..", "models", "scaler.pkl")
 RANDOM_STATE = 42
@@ -158,11 +159,11 @@ def save_processed(X_train, X_test, y_train, y_test) -> None:
     """Save train/test splits as CSV for use in model training step."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    train_df = X_train.copy()
-    train_df["Class"] = y_train.values
+    train_df = pd.DataFrame(X_train)
+    train_df["Class"] = y_train
 
-    test_df = X_test.copy()
-    test_df["Class"] = y_test.values
+    test_df = pd.DataFrame(X_test)
+    test_df["Class"] = y_test
 
     train_path = os.path.join(OUTPUT_DIR, "train.csv")
     test_path  = os.path.join(OUTPUT_DIR, "test.csv")
