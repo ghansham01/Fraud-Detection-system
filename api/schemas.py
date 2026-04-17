@@ -2,7 +2,7 @@ from pydantic import BaseModel, validator
 from typing import Optional
 
 
-class trasationScript(BaseModel):
+class TransactionInput(BaseModel):
     Time: float
     Amount: float
     V1: float

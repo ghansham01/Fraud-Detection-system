@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
 from api.schemas import TransactionInput, EnsembleResponse
 from api.predictor import run_ensemble
 from api.logger import init_logger, log_prediction

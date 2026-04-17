@@ -62,15 +62,15 @@ def get_agreement(predictions: list) -> str:
     
 
 def preprocess_input(data: dict) -> pd.DataFrame:
-
     df = pd.DataFrame([data])
 
-    # Scale Amount and Time exactly like training
-    df["Amount_scaled"] = scaler.transform(df[["Amount"]])
-    df["Time_scaled"] = scaler.transform(df[["Time"]])
+    # Scale Amount and Time together — same as training
+    df[["Amount_scaled", "Time_scaled"]] = scaler.transform(df[["Amount", "Time"]])
+
+    # Drop original columns
     df = df.drop(columns=["Amount", "Time"])
 
-    # Ensure column order matches training
+    # Match exact column order from training
     df = df[feature_cols]
 
     return df
