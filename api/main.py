@@ -8,11 +8,24 @@ from api.logger import init_logger, log_prediction
 import pandas as pd
 import os
 
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    init_logger()
+    print("Logger initialized")
+    print("All models loaded and ready")
+    yield
+
+
 
 app = FastAPI(
     title="Fraud Detection API",
     description="Ensemble ML API — 4 models vote on every transaction",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -29,9 +42,10 @@ def startup():
     print("Logger initialized")
     print("All models loaded and ready")
 
+
 @app.get("/")
 def root():
-    
+
     return {
         "message": "Fraud Detection API is running",
         "docs": "/docs",
@@ -40,7 +54,7 @@ def root():
 
 @app.get("/health")
 def health():
-    
+
     return {
         "status": "healthy",
         "models_loaded": 4,
@@ -50,13 +64,13 @@ def health():
 @app.post("/predict", response_model=EnsembleResponse)
 def predict(transaction: TransactionInput):
     try:
-        
-        result = run_ensemble(transaction.dict())
+        # .dict() ki jagah .model_dump() — Pydantic V2
+        result = run_ensemble(transaction.model_dump())
         log_prediction(transaction.Amount, result)
         return result
 
     except Exception as e:
-        
+       
         raise HTTPException(
             status_code=500,
             detail=f"Prediction failed: {str(e)}"
@@ -64,17 +78,25 @@ def predict(transaction: TransactionInput):
     
 @app.get("/logs/summary")
 def logs_summary():
-    
+    import pandas as pd
+    import os
+
     if not os.path.exists("logs/predictions.csv"):
-    
+        
         return {"message": "No predictions logged yet"}
 
-    df = pd.read_csv("logs/predictions.csv")
-    
+    # Read CSV - handle both with and without header
+    df = pd.read_csv("logs/predictions.csv", encoding="utf-8", header=None, 
+                     names=["timestamp", "amount", "final_verdict", "fraud_probability", "risk_level", "agreement"])
+
+    # Check karo CSV empty toh nahi
+    if df.empty:
+        return {"message": "No predictions logged yet"}
+
     return {
-        "total_predictions": len(df),
-        "fraud_detected": int((df["final_verdict"] == "Fraud").sum()),
-        "legit_detected": int((df["final_verdict"] == "Legit").sum()),
+        "total_predictions":     len(df),
+        "fraud_detected":        int((df["final_verdict"] == "Fraud").sum()),
+        "legit_detected":        int((df["final_verdict"] == "Legit").sum()),
         "avg_fraud_probability": round(df["fraud_probability"].mean(), 4),
-        "high_risk_count": int((df["risk_level"] == "High").sum()),
+        "high_risk_count":       int((df["risk_level"] == "High").sum()),
     }
