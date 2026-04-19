@@ -1,25 +1,16 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
 from api.schemas import TransactionInput, EnsembleResponse
 from api.predictor import run_ensemble
 from api.logger import init_logger, log_prediction
 
-import pandas as pd
-import os
-
-from contextlib import asynccontextmanager
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     init_logger()
     print("Logger initialized")
     print("All models loaded and ready")
     yield
-
-
 
 app = FastAPI(
     title="Fraud Detection API",
@@ -28,68 +19,53 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS — yeh middleware sabse pehle add hona chahiye
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],           # development ke liye
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-def startup():
-    
-    init_logger()
-    print("Logger initialized")
-    print("All models loaded and ready")
-
-
 @app.get("/")
 def root():
-
     return {
         "message": "Fraud Detection API is running",
-        "docs": "/docs",
-        "health": "/health"
+        "docs":    "/docs",
+        "health":  "/health"
     }
 
 @app.get("/health")
 def health():
-
     return {
-        "status": "healthy",
+        "status":        "healthy",
         "models_loaded": 4,
-        "version": "1.0.0"
+        "version":       "1.0.0"
     }
 
 @app.post("/predict", response_model=EnsembleResponse)
 def predict(transaction: TransactionInput):
     try:
-        # .dict() ki jagah .model_dump() — Pydantic V2
         result = run_ensemble(transaction.model_dump())
         log_prediction(transaction.Amount, result)
         return result
-
     except Exception as e:
-       
         raise HTTPException(
             status_code=500,
             detail=f"Prediction failed: {str(e)}"
         )
-    
+
 @app.get("/logs/summary")
 def logs_summary():
     import pandas as pd
     import os
 
     if not os.path.exists("logs/predictions.csv"):
-        
         return {"message": "No predictions logged yet"}
 
-    # Read CSV - handle both with and without header
-    df = pd.read_csv("logs/predictions.csv", encoding="utf-8", header=None, 
-                     names=["timestamp", "amount", "final_verdict", "fraud_probability", "risk_level", "agreement"])
+    df = pd.read_csv("logs/predictions.csv", encoding="utf-8")
 
-    # Check karo CSV empty toh nahi
     if df.empty:
         return {"message": "No predictions logged yet"}
 

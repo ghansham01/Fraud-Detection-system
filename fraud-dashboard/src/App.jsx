@@ -38,7 +38,7 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <PredictForm
-              setResult={setResult}
+              setResult={setresult}
               setLoading={setLoading}
               setError={setError}
               loading={loading}
@@ -53,7 +53,7 @@ function App() {
         {/* Error */}
         {error && (
           <div className="bg-red-500 border border-red-600 rounded-xl p-4">
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-white text-sm">{error}</p>
           </div>
         )}
 
