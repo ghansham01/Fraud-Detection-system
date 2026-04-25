@@ -1,22 +1,59 @@
 import joblib
 import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
-from sklearn.metrics import classification_report, accuracy_score,  confusion_matrix,roc_auc_score,f1_score
+from sklearn.metrics import classification_report, roc_auc_score, f1_score
 
 from pipeline.data_pipeline import run_pipeline
 
-def get_model():
+def get_model(y_train):
+    negative = int((y_train == 0).sum())
+    positive = int((y_train == 1).sum())
+    scale_pos_weight = max(1.0, np.sqrt(negative / positive))
 
     return {
-        "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-        "Decision Tree": DecisionTreeClassifier(max_depth=10, random_state=42),
-        "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
-        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric="logloss",random_state=42)
+        "Logistic Regression": CalibratedClassifierCV(
+            estimator=LogisticRegression(
+                max_iter=2000,
+                C=0.1,
+                class_weight={0: 1, 1: 12},
+                random_state=42,
+            ),
+            method="sigmoid",
+            cv=3,
+        ),
+        "Decision Tree": DecisionTreeClassifier(
+            max_depth=8,
+            min_samples_leaf=20,
+            class_weight={0: 1, 1: 12},
+            random_state=42,
+        ),
+        "Random Forest": RandomForestClassifier(
+            n_estimators=150,
+            min_samples_leaf=5,
+            class_weight={0: 1, 1: 12},
+            n_jobs=1,
+            random_state=42,
+        ),
+        "XGBoost": XGBClassifier(
+            eval_metric="logloss",
+            scale_pos_weight=scale_pos_weight,
+            max_depth=4,
+            learning_rate=0.08,
+            n_estimators=150,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            random_state=42,
+        ),
     }
 
 
@@ -67,7 +104,7 @@ def train_all():
     # Run data pipeline
     X_train, X_test, y_train, y_test = run_pipeline()
 
-    models  = get_model()
+    models  = get_model(y_train)
     results = []
 
     # train different-2 models 

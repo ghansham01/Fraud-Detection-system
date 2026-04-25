@@ -54,4 +54,30 @@ class EnsembleResponse(BaseModel):
     transaction_amount:  float
 
 
+
+class SimpleTransactionInput(BaseModel):
+    """User sirf yeh fill karta hai"""
+    amount: float
+    time_hour: float   # 0-23 (hour of day)
+    transaction_type: str  # "online" | "in-store" | "atm"
+
+    @field_validator("amount")
+    @classmethod
+    def amount_must_be_positive(cls, v):
+        if v < 0:
+            raise ValueError("Amount cannot be negative")
+        return v
+
+    @field_validator("time_hour")
+    @classmethod
+    def hour_must_be_valid(cls, v):
+        if not 0 <= v <= 23:
+            raise ValueError("time_hour must be between 0 and 23")
+        return v
     
+    @field_validator("transaction_type")
+    @classmethod
+    def type_must_be_valid(cls, v):
+        if v not in ["online", "in-store", "atm"]:
+            raise ValueError("transaction_type must be online, in-store, or atm")
+        return v

@@ -13,6 +13,13 @@ MODEL_FILES = {
     "XGBoost": "xgboost.pkl",
 }
 
+MODEL_THRESHOLDS = {
+    "Logistic Regression": 0.70,
+    "Decision Tree": 0.50,
+    "Random Forest": 0.50,
+    "XGBoost": 0.50,
+}
+
 def load_artifacts():
     models = {}
     for name, filename in MODEL_FILES.items():
@@ -84,7 +91,7 @@ def run_ensemble(transaction_data: dict) -> dict:
     for name, model in models.items():
         
         proba = model.predict_proba(processed)[0][1]  # fraud probability
-        pred = int(proba >= 0.5)
+        pred = int(proba >= MODEL_THRESHOLDS.get(name, 0.5))
         label = "Fraud" if pred == 1 else "Legit"
         confidence = get_confidence(proba)
 

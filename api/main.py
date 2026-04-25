@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from api.schemas import TransactionInput, EnsembleResponse
+from api.schemas import TransactionInput, EnsembleResponse, SimpleTransactionInput
 from api.predictor import run_ensemble
 from api.logger import init_logger, log_prediction
+from api.estimator import estimator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -76,3 +77,37 @@ def logs_summary():
         "avg_fraud_probability": round(df["fraud_probability"].mean(), 4),
         "high_risk_count":       int((df["risk_level"] == "High").sum()),
     }
+
+@app.post("/predict/simple", response_model=EnsembleResponse)
+def predict_simple(transaction: SimpleTransactionInput):
+    try:
+        # Time hour ko seconds mein convert karo
+        time_seconds = transaction.time_hour * 3600
+
+        # Transaction type se amount adjust karo
+        type_multiplier = {
+            "online":   1.0,
+            "in-store": 0.8,
+            "atm":      1.2
+        }
+        adjusted_amount = transaction.amount * type_multiplier[transaction.transaction_type]
+
+        # V features estimate karo
+        v_features = estimator(adjusted_amount, time_seconds)
+
+        # Full payload banao
+        full_payload = {
+            "Time":   time_seconds,
+            "Amount": transaction.amount,
+            **v_features
+        }
+
+        result = run_ensemble(full_payload)
+        log_prediction(transaction.amount, result)
+        return result
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction failed: {str(e)}"
+        )   
